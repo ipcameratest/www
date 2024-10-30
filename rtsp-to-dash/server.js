@@ -1,27 +1,93 @@
 const express = require('express');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = 3000;
 
+// Store active conversion process
+let conversionProcess = null;
+
+// Ensure dash directory exists
+const dashDir = path.join(__dirname, 'dash');
+if (!fs.existsSync(dashDir)) {
+    fs.mkdirSync(dashDir, { recursive: true });
+}
+
+// Serve static files
 app.use(express.static('public'));
-app.use(express.static('dash'));
+app.use('/dash', express.static(path.join(__dirname, 'dash')));
 app.use(express.json());
+
+// Validate RTSP URL
+function isValidRtspUrl(url) {
+    return url && url.startsWith('rtsp://');
+}
+
+// Clean up function for old conversion process
+function cleanupOldProcess() {
+    if (conversionProcess) {
+        try {
+            conversionProcess.kill();
+        } catch (err) {
+            console.error('Error killing old process:', err);
+        }
+        conversionProcess = null;
+    }
+}
 
 app.post('/convert', (req, res) => {
     const rtspUrl = req.body.rtspUrl;
-    const outputDir = path.join(__dirname, 'dash');
 
-    exec(`./convert.sh ${rtspUrl} ${outputDir}`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`exec error: ${error}`);
-            return res.status(500).send('Conversion failed');
-        }
-        res.send('Conversion started');
+    if (!rtspUrl) {
+        return res.status(400).json({ error: 'RTSP URL is required' });
+    }
+
+    if (!isValidRtspUrl(rtspUrl)) {
+        return res.status(400).json({ error: 'Invalid RTSP URL format' });
+    }
+
+    // Clean up old process if exists
+    cleanupOldProcess();
+
+    const outputDir = path.join(__dirname, 'dash');
+    const convertScript = path.join(__dirname, 'convert.sh');
+
+    // Ensure convert.sh is executable
+    fs.chmodSync(convertScript, '755');
+
+    // Start new conversion process
+    conversionProcess = spawn(convertScript, [rtspUrl, outputDir]);
+
+    conversionProcess.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`);
     });
+
+    conversionProcess.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
+    });
+
+    conversionProcess.on('error', (error) => {
+        console.error(`Error: ${error.message}`);
+        res.status(500).json({ error: 'Conversion failed', details: error.message });
+    });
+
+    // Don't wait for process to end, just confirm it started
+    res.json({ message: 'Conversion started' });
+});
+
+// Cleanup on server shutdown
+process.on('SIGTERM', cleanupOldProcess);
+process.on('SIGINT', cleanupOldProcess);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`DASH content served from ${dashDir}`);
 });

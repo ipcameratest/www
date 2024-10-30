@@ -29,6 +29,8 @@
 </div>
 
 <script>
+    let player = null;
+
     document.getElementById('convertButton').addEventListener('click', function() {
         var rtspUrl = document.getElementById('rtspInput').value;
         fetch('/convert', {
@@ -40,9 +42,46 @@
     });
 
     document.getElementById('playButton').addEventListener('click', function() {
+        if (player) {
+            player.reset();
+        }
+        
         var url = document.getElementById('urlInput').value;
-        var player = dashjs.MediaPlayer().create();
+        player = dashjs.MediaPlayer().create();
+        
+        // Configure for live streaming with corrected settings
+        player.updateSettings({
+            'streaming': {
+                'delay': {
+                    'liveDelay': 2
+                },
+                'buffer': {
+                    'bufferTimeAtTopQuality': 2,
+                    'fastSwitchEnabled': true
+                },
+                'stallThreshold': 0.5,
+                'lowLatencyEnabled': true,
+                'abr': {
+                    'useDefaultABRRules': true,
+                    'initialBitrate': {
+                        'audio': -1,
+                        'video': -1
+                    },
+                    'autoSwitchBitrate': {
+                        'audio': true,
+                        'video': true
+                    }
+                }
+            }
+        });
+
         player.initialize(document.querySelector("#videoPlayer"), url, true);
+        player.setAutoPlay(true);
+        
+        // Add error handling
+        player.on('error', function(e) {
+            console.error('Player error:', e);
+        });
     });
 </script>
 </body>

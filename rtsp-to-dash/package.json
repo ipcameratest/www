@@ -1,15 +1,25 @@
 {
   "name": "rtsp-to-dash",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "RTSP to DASH converter with continuous live streaming support",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "./start.sh",
+    "stop": "./stop.sh",
+    "test": "node test.js"
   },
-  "keywords": [],
+  "keywords": [
+    "rtsp",
+    "dash",
+    "streaming",
+    "ffmpeg",
+    "live-streaming",
+    "video"
+  ],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
   }
 }
