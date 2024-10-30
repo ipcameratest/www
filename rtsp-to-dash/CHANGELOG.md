@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2024-10-30
+
+### Added
+- React-based web interface
+- Material-UI components and styling
+- Development and production modes
+- CORS support for API
+- Improved process management
+- Enhanced development workflow
+
+### Changed
+- Complete UI overhaul with React
+- Updated server to serve React build
+- Enhanced start/stop scripts
+- Improved documentation
+- Better error handling and notifications
+
+### Technical Changes
+- Added React client application
+- Integrated Material-UI
+- Updated dash.js player configuration
+- Added development server support
+- Enhanced build process
+
 ## [2.0.0] - 2024-10-30
 
 ### Added

@@ -2,6 +2,7 @@ const express = require('express');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
@@ -15,7 +16,11 @@ if (!fs.existsSync(dashDir)) {
     fs.mkdirSync(dashDir, { recursive: true });
 }
 
+// Enable CORS
+app.use(cors());
+
 // Serve static files
+app.use(express.static('client/build')); // Serve React app
 app.use(express.static('public'));
 app.use('/dash', express.static(path.join(__dirname, 'dash')));
 app.use(express.json());
@@ -25,7 +30,7 @@ function isValidRtspUrl(url) {
     return url && url.startsWith('rtsp://');
 }
 
-// Clean up function for old conversion process
+// Clean up function for old process
 function cleanupOldProcess() {
     if (conversionProcess) {
         try {
@@ -75,6 +80,11 @@ app.post('/convert', (req, res) => {
 
     // Don't wait for process to end, just confirm it started
     res.json({ message: 'Conversion started' });
+});
+
+// Serve React app for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/build/index.html'));
 });
 
 // Cleanup on server shutdown

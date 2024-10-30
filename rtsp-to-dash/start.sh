@@ -12,6 +12,19 @@ fi
 # Ensure dash directory exists
 mkdir -p dash
 
-# Start the server
-echo "Starting server..."
-node server.js
+# Check if client build exists, if not build it
+if [ ! -d "client/build" ]; then
+    echo "Building React client..."
+    npm run client-install
+    npm run client-build
+fi
+
+# Start the development environment (both server and client)
+if [ "$1" = "dev" ]; then
+    echo "Starting development environment..."
+    npm run dev
+else
+    # Start production server
+    echo "Starting production server..."
+    npm run server
+fi

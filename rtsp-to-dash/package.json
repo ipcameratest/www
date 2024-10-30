@@ -1,12 +1,18 @@
 {
   "name": "rtsp-to-dash",
-  "version": "2.0.0",
-  "description": "RTSP to DASH converter with continuous live streaming support",
+  "version": "3.0.0",
+  "description": "RTSP to DASH converter with React UI and continuous live streaming support",
   "main": "server.js",
   "scripts": {
     "start": "./start.sh",
     "stop": "./stop.sh",
-    "test": "node test.js"
+    "test": "node test.js",
+    "client-install": "cd client && npm install",
+    "client-build": "cd client && npm run build",
+    "client-start": "cd client && npm start",
+    "server": "node server.js",
+    "dev": "concurrently \"npm run server\" \"npm run client-start\"",
+    "setup": "npm install && npm run client-install && npm run client-build"
   },
   "keywords": [
     "rtsp",
@@ -14,12 +20,18 @@
     "streaming",
     "ffmpeg",
     "live-streaming",
-    "video"
+    "video",
+    "react",
+    "material-ui"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.1"
   }
 }
