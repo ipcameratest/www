@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DASH Stream Player</title>
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+    <style>
+        #playerContainer {
+            margin-top: 20px;
+        }
+        #urlInput {
+            width: 80%;
+            padding: 10px;
+        }
+        #playButton, #convertButton {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>RTSP to DASH Converter</h1>
+<div>
+    <input type="text" id="rtspInput" placeholder="Enter RTSP URL">
+    <button id="convertButton">Convert</button>
+</div>
+<div id="playerContainer">
+    <input type="text" id="urlInput" placeholder="Enter MPD URL" value="dash/stream.mpd">
+    <button id="playButton">Play</button>
+    <video id="videoPlayer" controls width="640" height="360"></video>
+</div>
+
+<script>
+    document.getElementById('convertButton').addEventListener('click', function() {
+        var rtspUrl = document.getElementById('rtspInput').value;
+        fetch('/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rtspUrl })
+        }).then(response => response.text())
+            .then(data => alert(data));
+    });
+
+    document.getElementById('playButton').addEventListener('click', function() {
+        var url = document.getElementById('urlInput').value;
+        var player = dashjs.MediaPlayer().create();
+        player.initialize(document.querySelector("#videoPlayer"), url, true);
+    });
+</script>
+</body>
+</html>

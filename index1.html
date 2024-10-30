@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RTSP Camera Viewer</title>
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+</head>
+<body>
+<div>
+    <video id="videoPlayer" controls></video>
+</div>
+<script>
+    var url = "/dash/stream.mpd";
+    var player = dashjs.MediaPlayer().create();
+    player.initialize(document.querySelector("#videoPlayer"), url, true);
+</script>
+</body>
+</html>

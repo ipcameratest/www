@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Podgląd kamery IP</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        #cameraForm {
+            margin-bottom: 20px;
+        }
+        #cameraAddress {
+            width: 300px;
+            padding: 5px;
+        }
+        #loadButton {
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="cameraForm">
+    <input type="text" id="cameraAddress" placeholder="Wprowadź adres kamery RTSP">
+    <button id="loadButton">Załaduj strumień</button>
+</div>
+<video id="video" controls></video>
+
+<script>
+    var video = document.getElementById('video');
+    var cameraAddress = document.getElementById('cameraAddress');
+    var loadButton = document.getElementById('loadButton');
+
+    loadButton.addEventListener('click', function() {
+        loadStream(cameraAddress.value);
+    });
+
+    function loadStream(address) {
+        // Załóżmy, że serwer pośredniczący działa na tym samym komputerze co strona
+        var videoSrc = 'http://' + window.location.hostname + ':8000/stream?url=' + encodeURIComponent(address);
+
+        if (Hls.isSupported()) {
+            var hls = new Hls();
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                video.play();
+            });
+        }
+        else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+            video.addEventListener('loadedmetadata', function() {
+                video.play();
+            });
+        }
+    }
+</script>
+</body>
+</html>

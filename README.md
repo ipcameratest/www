@@ -1,6 +1,7 @@
 # www.ipcameratest.com
 
 
+
 1. Testowanie kamer IP:
 - Sprawdzanie poprawności działania kamer sieciowych
 - Weryfikacja ustawień i konfiguracji

@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  rtsp-to-dash:
+    build: .
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./dash:/usr/src/app/dash
+      - ./public:/usr/src/app/public
+    restart: always
