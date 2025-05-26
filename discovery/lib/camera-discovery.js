@@ -190,7 +190,7 @@ class CameraDiscovery {
     async isPortOpen(ip, port) {
         return new Promise((resolve) => {
             const socket = new net.Socket();
-            const timeout = 3030;
+            const timeout = 3000;
 
             socket.setTimeout(timeout);
             socket.on('connect', () => {
@@ -245,7 +245,7 @@ class CameraDiscovery {
             const url = new URL(rtspUrl.replace('rtsp://', 'http://'));
             const socket = new net.Socket();
 
-            socket.setTimeout(3030);
+            socket.setTimeout(3000);
             socket.on('connect', () => {
                 socket.write('OPTIONS * RTSP/1.0\r\nCSeq: 1\r\n\r\n');
             });

@@ -1,9 +1,11 @@
-const Stream = require('node-rtsp-stream');
+const { spawn } = require('child_process');
+const WebSocket = require('ws');
 
 class RTSPStreamer {
     constructor() {
         this.activeStreams = new Map();
         this.streamPort = 9999;
+        this.wsServers = new Map();
     }
 
     async startStream(camera) {
@@ -14,24 +16,58 @@ class RTSPStreamer {
         const wsPort = this.streamPort++;
 
         try {
-            const stream = new Stream({
-                name: camera.name,
-                streamUrl: camera.rtspUrl,
-                wsPort: wsPort,
-                ffmpegOptions: {
-                    '-stats': '',
-                    '-r': 30,
-                    '-s': '640x480',
-                    '-f': 'mpegts',
-                    '-codec:v': 'mpeg1video',
-                    '-b:v': '800k',
-                    '-bf': 0,
-                    '-muxdelay': 0.001
-                }
+            // Create WebSocket server for this stream
+            const wss = new WebSocket.Server({ port: wsPort });
+            this.wsServers.set(camera.id, wss);
+
+            // Start FFmpeg process to convert RTSP to MPEG-TS
+            const ffmpeg = spawn('ffmpeg', [
+                '-i', camera.rtspUrl,
+                '-f', 'mpegts',
+                '-codec:v', 'mpeg1video',
+                '-s', '640x480',
+                '-b:v', '1000k',
+                '-bf', '0',
+                '-r', '25',
+                '-codec:a', 'mp2',
+                '-ar', '44100',
+                '-ac', '1',
+                '-b:a', '128k',
+                '-muxdelay', '0.001',
+                '-fflags', 'nobuffer',
+                '-flags', 'low_delay',
+                '-'
+            ], {
+                stdio: ['ignore', 'pipe', 'pipe']
+            });
+
+            // Handle FFmpeg output
+            ffmpeg.stdout.on('data', (data) => {
+                // Broadcast to all connected WebSocket clients
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(data);
+                    }
+                });
+            });
+
+            ffmpeg.stderr.on('data', (data) => {
+                console.log(`FFmpeg stderr: ${data}`);
+            });
+
+            ffmpeg.on('close', (code) => {
+                console.log(`FFmpeg process exited with code ${code}`);
+                this.stopStream(camera.id);
+            });
+
+            ffmpeg.on('error', (error) => {
+                console.error(`FFmpeg error: ${error}`);
+                this.stopStream(camera.id);
             });
 
             this.activeStreams.set(camera.id, {
-                stream: stream,
+                ffmpeg: ffmpeg,
+                wss: wss,
                 wsPort: wsPort,
                 camera: camera
             });
@@ -47,8 +83,19 @@ class RTSPStreamer {
     stopStream(cameraId) {
         if (this.activeStreams.has(cameraId)) {
             const streamInfo = this.activeStreams.get(cameraId);
-            streamInfo.stream.stop();
+
+            // Kill FFmpeg process
+            if (streamInfo.ffmpeg) {
+                streamInfo.ffmpeg.kill('SIGTERM');
+            }
+
+            // Close WebSocket server
+            if (streamInfo.wss) {
+                streamInfo.wss.close();
+            }
+
             this.activeStreams.delete(cameraId);
+            this.wsServers.delete(cameraId);
             console.log(`Stopped stream for camera ${cameraId}`);
         }
     }

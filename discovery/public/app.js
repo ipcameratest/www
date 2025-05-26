@@ -140,12 +140,30 @@ class CameraApp {
         title.textContent = camera.name;
         modal.classList.remove('hidden');
 
-        // Initialize JSMpeg player
+        // Initialize JSMpeg player with proper WebSocket URL
         const wsUrl = `ws://${window.location.hostname}:${wsPort}`;
+
         this.currentStream = new JSMpeg.Player(wsUrl, {
             canvas: canvas,
             autoplay: true,
-            audio: false
+            audio: true,
+            video: true,
+            loop: false,
+            disableGl: false,
+            preserveDrawingBuffer: false,
+            progressive: false,
+            videoBufferSize: 512 * 1024,
+            audioBufferSize: 128 * 1024,
+            maxAudioLag: 1,
+            onSourceEstablished: () => {
+                console.log('Stream connection established');
+            },
+            onSourceCompleted: () => {
+                console.log('Stream completed');
+            },
+            onStalled: () => {
+                console.log('Stream stalled - buffering...');
+            }
         });
 
         this.currentStreamId = cameraId;
@@ -159,6 +177,8 @@ class CameraApp {
             this.currentStream.destroy();
             this.currentStream = null;
         }
+
+        this.currentStreamId = null;
     }
 
     async stopCurrentStream() {
@@ -183,7 +203,6 @@ class CameraApp {
         document.getElementById('loading').classList.add('hidden');
     }
 }
-
 // Initialize the app
 const app = new CameraApp();
 
