@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost:3033';
 const TEST_RTSP_URL = 'rtsp://example.com/test';
 const DASH_DIR = path.join(__dirname, 'dash');
 

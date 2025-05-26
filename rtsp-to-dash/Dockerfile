@@ -21,7 +21,7 @@ COPY . .
 RUN chmod +x convert.sh
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 3033
 
 # Run the application
 CMD [ "node", "server.js" ]

@@ -2,18 +2,18 @@
 
 echo "Stopping RTSP to DASH converter..."
 
-# Find and kill process using port 3000 (server)
-PORT_PID=$(lsof -t -i:3000)
+# Find and kill process using port 3033 (server)
+PORT_PID=$(lsof -t -i:3033)
 if [ ! -z "$PORT_PID" ]; then
-    echo "Killing process on port 3000 (PID: $PORT_PID)"
+    echo "Killing process on port 3033 (PID: $PORT_PID)"
     kill -9 $PORT_PID
     if [ $? -eq 0 ]; then
-        echo "Successfully stopped server on port 3000"
+        echo "Successfully stopped server on port 3033"
     else
-        echo "Failed to stop server on port 3000"
+        echo "Failed to stop server on port 3033"
     fi
 else
-    echo "No process found running on port 3000"
+    echo "No process found running on port 3033"
 fi
 
 # Find and kill process using port 3001 (React development server)

@@ -43,7 +43,7 @@ To run both the server and client in development mode:
 ```
 
 This will:
-- Start the backend server on port 3000
+- Start the backend server on port 3033
 - Start the React development server on port 3001
 - Enable hot reloading for both client and server
 
@@ -57,7 +57,7 @@ To run in production mode:
 This will:
 - Build the React application if not already built
 - Serve the static React build from the backend
-- Run only the backend server on port 3000
+- Run only the backend server on port 3033
 
 ### Stopping the Server
 
@@ -126,12 +126,12 @@ The web interface provides:
 
 When running in development mode:
 - React app: http://localhost:3001
-- Backend API: http://localhost:3000
+- Backend API: http://localhost:3033
 
 ### Production Interface
 
 When running in production mode:
-- Everything runs on: http://localhost:3000
+- Everything runs on: http://localhost:3033
 
 ## API Endpoints
 
@@ -166,8 +166,8 @@ Content-Type: application/json
 ### DASH Stream Access
 
 The converted DASH stream is available at:
-- MPD file: `http://localhost:3000/dash/stream.mpd`
-- Segments: `http://localhost:3000/dash/chunk-stream*-*.m4s`
+- MPD file: `http://localhost:3033/dash/stream.mpd`
+- Segments: `http://localhost:3033/dash/chunk-stream*-*.m4s`
 
 ## Project Structure
 
@@ -227,7 +227,7 @@ All changes are documented in CHANGELOG.md and can be published using publish.sh
 ## Troubleshooting
 
 1. If the development server won't start:
-   - Check if ports 3000 or 3001 are in use
+   - Check if ports 3033 or 3001 are in use
    - Run ./stop.sh to clean up any existing processes
    - Check the logs for error messages
 
