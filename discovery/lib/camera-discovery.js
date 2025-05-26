@@ -300,53 +300,84 @@ class CameraDiscovery {
         return potentialCameras;
     }
 
+        // Enhanced checkWebInterface with better detection and error handling
     async checkWebInterface(ip, port) {
         try {
-            const protocols = port === 443 ? ['https'] : ['http'];
+            const protocols = port === 443 ? ['https'] : ['http', 'https'];
+            const httpTimeout = 5000; // 5 seconds timeout
 
             for (const protocol of protocols) {
                 try {
-                    const response = await axios.get(`${protocol}://${ip}:${port}`, {
-                        timeout: 3000,
-                        validateStatus: () => true,
+                    const url = `${protocol}://${ip}:${port}`;
+                    console.log(`Checking web interface at ${url}...`);
+
+                    const response = await axios.get(url, {
+                        timeout: httpTimeout,
+                        validateStatus: () => true, // Accept all status codes
+                        maxRedirects: 2,
                         headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        },
-                        maxRedirects: 2
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.5',
+                            'Connection': 'keep-alive',
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
                     });
 
-                    if (response.status === 200 || response.status === 401 || response.status === 403) {
-                        const html = (response.data || '').toLowerCase();
+                    const status = response.status;
+                    console.log(`HTTP ${status} from ${url}`);
+
+                    // Check for common camera response patterns
+                    if ([200, 401, 403, 404].includes(status)) {
+                        const html = (response.data || '').toString().toLowerCase();
                         const headers = JSON.stringify(response.headers).toLowerCase();
                         const combined = html + ' ' + headers;
 
-                        // Check for camera-specific indicators
+                        // Expanded list of camera indicators
                         const cameraIndicators = [
-                            'camera', 'video', 'stream', 'surveillance', 'ipcam', 'webcam',
-                            'dvr', 'nvr', 'cctv', 'security', 'live view', 'video monitor',
-                            'login', 'password', 'admin', 'user login', 'device login'
+                            // General camera terms
+                            'camera', 'ipcam', 'webcam', 'surveillance', 'security',
+                            'dvr', 'nvr', 'cctv', 'video server', 'network video',
+                            'live view', 'video monitor', 'streaming', 'video feed',
+
+                            // Authentication related
+                            'login', 'password', 'username', 'sign in', 'log in',
+                            'admin', 'administrator', 'user login', 'device login',
+
+                            // Manufacturer specific
+                            'hikvision', 'dahua', 'axis', 'foscam', 'tp-link',
+                            'uniview', 'reolink', 'vivotek', 'mobotix', 'bosch',
+                            'pelco', 'panasonic', 'sony', 'samsung', 'hanwha'
                         ];
 
                         const hasCameraIndicators = cameraIndicators.some(indicator =>
-                            combined.includes(indicator)
+                            combined.includes(indicator.toLowerCase())
                         );
 
                         if (hasCameraIndicators) {
-                            // Try to identify manufacturer
                             const manufacturer = this.identifyManufacturerFromResponse(combined);
+                            console.log(`Detected ${manufacturer} camera at ${url}`);
                             return {
                                 isCamera: true,
                                 manufacturer: manufacturer,
-                                response: response
+                                response: {
+                                    status: status,
+                                    headers: response.headers,
+                                    data: response.data?.substring(0, 1000) // First 1000 chars
+                                }
                             };
                         }
                     }
                 } catch (error) {
-                    // Try next protocol
+                    if (!axios.isCancel(error)) {
+                        console.error(`Error checking ${protocol}://${ip}:${port}:`, error.message);
+                    }
+                    // Continue to next protocol
                 }
             }
         } catch (error) {
-            // Continue
+            console.error(`Unexpected error in checkWebInterface for ${ip}:${port}:`, error.message);
         }
 
         return { isCamera: false };
@@ -354,40 +385,133 @@ class CameraDiscovery {
 
     identifyManufacturerFromResponse(content) {
         const manufacturers = [
-            { name: 'hikvision', keywords: ['hikvision', 'hik-connect', 'ds-', 'ipc-'] },
-            { name: 'dahua', keywords: ['dahua', 'dh-', 'ipc-hfw', 'ipc-hdw'] },
-            { name: 'axis', keywords: ['axis', 'vapix'] },
-            { name: 'foscam', keywords: ['foscam', 'fi8', 'fi9'] },
-            { name: 'tp-link', keywords: ['tp-link', 'tapo', 'kasa'] },
-            { name: 'uniview', keywords: ['uniview', 'ipc'] },
-            { name: 'reolink', keywords: ['reolink'] },
-            { name: 'vivotek', keywords: ['vivotek'] },
-            { name: 'mobotix', keywords: ['mobotix'] },
-            { name: 'bosch', keywords: ['bosch', 'flexidome', 'dinion'] },
-            { name: 'pelco', keywords: ['pelco'] },
-            { name: 'panasonic', keywords: ['panasonic', 'i-pro'] },
-            { name: 'sony', keywords: ['sony'] },
-            { name: 'samsung', keywords: ['samsung', 'hanwha'] }
+            {
+                name: 'hikvision',
+                keywords: [
+                    'hikvision', 'hik-connect', 'hik-connect.net',
+                    'ds-', 'ipc-', 'hikcentral', 'ivms-'
+                ]
+            },
+            {
+                name: 'dahua',
+                keywords: [
+                    'dahua', 'dh-', 'ipc-hdw', 'ipc-hfw', 'nvr4', 'dhi-',
+                    'dahua technology', 'dahua cctv', 'dmss'
+                ]
+            },
+            {
+                name: 'axis',
+                keywords: [
+                    'axis', 'vapix', 'axis communications', 'axis camera',
+                    'axis companion', 'axis network camera'
+                ]
+            },
+            {
+                name: 'foscam',
+                keywords: [
+                    'foscam', 'fi8', 'fi9', 'foscam cgi', 'foscam inc',
+                    'foscam camera', 'foscam web service'
+                ]
+            },
+            {
+                name: 'tp-link',
+                keywords: [
+                    'tp-link', 'tapo', 'kasa', 'tp link', 'tapoc200',
+                    'tapoc210', 'tapoc310', 'kc310s', 'kc810'
+                ]
+            },
+            {
+                name: 'uniview',
+                keywords: [
+                    'uniview', 'ipc', 'nvr', 'ehd', 'unv-', 'unv ',
+                    'uniview technology', 'uniview cctv'
+                ]
+            },
+            {
+                name: 'reolink',
+                keywords: [
+                    'reolink', 'rlc-', 'rln', 'reolink camera',
+                    'reolink nvr', 'reolink web'
+                ]
+            },
+            {
+                name: 'vivotek',
+                keywords: [
+                    'vivotek', 'vv', 'va-', 'vb-', 'vc-', 'vd-', 've-',
+                    'vivotek inc', 'vivotek camera'
+                ]
+            },
+            {
+                name: 'mobotix',
+                keywords: [
+                    'mobotix', 'm1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7',
+                    'mobotix ag', 'mobotix camera'
+                ]
+            },
+            {
+                name: 'bosch',
+                keywords: [
+                    'bosch', 'flexidome', 'dinion', 'autodome', 'bosch security',
+                    'bosch camera', 'bosch video'
+                ]
+            },
+            {
+                name: 'pelco',
+                keywords: [
+                    'pelco', 'sarix', 'spectra', 'ultim', 'pelco by schneider',
+                    'pelco video', 'pelco camera'
+                ]
+            },
+            {
+                name: 'panasonic',
+                keywords: [
+                    'panasonic', 'i-pro', 'wv-', 'wv ', 'panasonic network',
+                    'panasonic camera', 'panasonic security'
+                ]
+            },
+            {
+                name: 'sony',
+                keywords: [
+                    'sony', 'snc-', 'sony corporation', 'sony camera',
+                    'sony network camera', 'sony security'
+                ]
+            },
+            {
+                name: 'samsung',
+                keywords: [
+                    'samsung', 'hanwha', 'wisenet', 'snp-', 'snv-', 'sno-',
+                    'samsung techwin', 'samsung security'
+                ]
+            }
         ];
 
+        const contentLower = content.toLowerCase();
         for (const manufacturer of manufacturers) {
             for (const keyword of manufacturer.keywords) {
-                if (content.includes(keyword)) {
+                if (contentLower.includes(keyword.toLowerCase())) {
                     return manufacturer.name;
                 }
             }
         }
 
-        return 'generic';
-    }
+        // Check for common camera paths if no manufacturer found
+        const commonCameraPaths = [
+            '/view/viewer.shtml', // Axis
+            '/view/view.shtml',  // Axis
+            '/doc/page/login.asp', // Hikvision
+            '/doc/page/login.asp#', // Hikvision
+            '/login.asp', // Many cameras
+            '/login.htm', // Many cameras
+            '/web/admin/index.html', // Many cameras
+            '/web/index.html', // Many cameras
+            '/cgi-bin/viewer/video.jpg' // Many cameras
+        ];
 
-    // Removed deprecated methods that were moved to other parts of the code
-                } catch (error) {
-                    // Continue to next port/manufacturer
-                }
-            }
+        if (commonCameraPaths.some(path => contentLower.includes(path))) {
+            return 'generic';
         }
-        return null;
+
+        return 'unknown';
     }
 
     async tryPortIdentification(ip) {
@@ -529,49 +653,84 @@ class CameraDiscovery {
 
     async testRTSPConnection(rtspUrl) {
         return new Promise((resolve) => {
+            let socket;
             try {
-                const url = new URL(rtspUrl.replace('rtsp://', 'http://'));
-                const socket = new net.Socket();
+                // Parse RTSP URL more robustly
+                let host, port, path;
+                try {
+                    // Handle cases where URL might have authentication
+                    const cleanUrl = rtspUrl.includes('@')
+                        ? 'rtsp://' + rtspUrl.split('@')[1]
+                        : rtspUrl;
+                    const url = new URL(cleanUrl);
+                    host = url.hostname;
+                    port = url.port || 554;
+                    path = url.pathname + (url.search || '');
+                } catch (e) {
+                    console.error(`Invalid RTSP URL format: ${rtspUrl}`, e);
+                    return resolve(false);
+                }
 
+                socket = new net.Socket();
                 socket.setTimeout(5000);
-                socket.on('connect', () => {
-                    // Send RTSP OPTIONS request
-                    const request = [
-                        'OPTIONS * RTSP/1.0',
-                        'CSeq: 1',
-                        'User-Agent: CameraDiscovery/1.0',
-                        '',
-                        ''
-                    ].join('\r\n');
 
-                    socket.write(request);
+                socket.on('connect', () => {
+                    try {
+                        // Send RTSP OPTIONS request
+                        const request = [
+                            'OPTIONS * RTSP/1.0',
+                            'CSeq: 1',
+                            'User-Agent: CameraDiscovery/1.0',
+                            'Accept: application/sdp',
+                            ''
+                        ].join('\r\n');
+
+                        socket.write(request);
+                    } catch (err) {
+                        console.error(`Error sending RTSP request to ${rtspUrl}:`, err.message);
+                        if (socket) socket.destroy();
+                        resolve(false);
+                    }
                 });
 
                 socket.on('data', (data) => {
-                    const response = data.toString();
-                    socket.destroy();
+                    try {
+                        const response = data.toString();
+                        console.log(`RTSP Response from ${host}:${port}${path}: ${response.substring(0, 200)}${response.length > 200 ? '...' : ''}`);
 
-                    // Check for successful RTSP response
-                    if (response.includes('RTSP/1.0 200') ||
-                        response.includes('RTSP/1.0 401') ||
-                        response.includes('RTSP/1.0 454')) {
-                        resolve(true);
-                    } else {
+                        // Check for successful RTSP response
+                        const isValidResponse = response.startsWith('RTSP/1.0 200') ||
+                            response.includes('RTSP/1.0 200') ||
+                            response.includes('RTSP/1.0 401') ||
+                            response.includes('RTSP/1.0 454');
+
+                        if (socket) socket.destroy();
+                        resolve(isValidResponse);
+                    } catch (err) {
+                        console.error(`Error processing RTSP response from ${rtspUrl}:`, err.message);
+                        if (socket) socket.destroy();
                         resolve(false);
                     }
                 });
 
                 socket.on('timeout', () => {
-                    socket.destroy();
+                    console.log(`RTSP connection timed out for ${rtspUrl}`);
+                    if (socket) socket.destroy();
                     resolve(false);
                 });
 
-                socket.on('error', () => {
+                socket.on('error', (err) => {
+                    console.error(`RTSP connection error for ${rtspUrl}:`, err.message);
+                    if (socket) socket.destroy();
                     resolve(false);
                 });
 
-                socket.connect(url.port || 554, url.hostname);
+                // Connect with error handling
+                console.log(`Attempting to connect to RTSP: ${host}:${port}${path}`);
+                socket.connect(port, host);
             } catch (error) {
+                console.error(`Unexpected error in testRTSPConnection for ${rtspUrl}:`, error.message);
+                if (socket) socket.destroy();
                 resolve(false);
             }
         });
