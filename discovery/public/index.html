@@ -1,0 +1,39 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera RTSP Discovery System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Camera RTSP Discovery System</h1>
+            <button id="scanBtn" class="btn btn-primary">Scan Network</button>
+        </header>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Scanning network for cameras...</p>
+        </div>
+
+        <div id="cameraGrid" class="camera-grid"></div>
+
+        <div id="streamModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="streamTitle">Camera Stream</h2>
+                <canvas id="streamCanvas"></canvas>
+                <div class="stream-controls">
+                    <button id="stopStreamBtn" class="btn btn-danger">Stop Stream</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="jsmpeg.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
