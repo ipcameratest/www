@@ -3,6 +3,7 @@ class CameraApp {
         this.cameras = [];
         this.ws = null;
         this.currentStream = null;
+        this.currentStreamId = null;
         this.initializeWebSocket();
         this.bindEvents();
     }
@@ -203,6 +204,7 @@ class CameraApp {
         document.getElementById('loading').classList.add('hidden');
     }
 }
+
 // Initialize the app
 const app = new CameraApp();
 
